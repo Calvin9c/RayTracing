@@ -32,14 +32,14 @@ int main(int argc, char *argv[]) {
 
     if (wSet != hSet) {
         std::cerr << "Error: Both -w and -h must be provided together." << std::endl;
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
 
     std::vector<Object*> scene = {
-        new Sphere(glm::vec3(.75, .1, 1.), .6, glm::vec3(.8, .3, 0.)),
-        new Sphere(glm::vec3(-.3, .01, .2), .3, glm::vec3(.0, .0, .9)),
-        new Sphere(glm::vec3(-2.75, .1, 3.5), .6, glm::vec3(.1, .572, .184)),
-        new Plane(glm::vec3(0., -.5, 0.), glm::vec3(0., 1., 0.))
+        new Sphere(vec3(.75, .1, 1.), .6, vec3(.8, .3, 0.)),
+        new Sphere(vec3(-.3, .01, .2), .3, vec3(.0, .0, .9)),
+        new Sphere(vec3(-2.75, .1, 3.5), .6, vec3(.1, .572, .184)),
+        new Plane(vec3(0., -.5, 0.), vec3(0., 1., 0.))
     };
 
     rendering(

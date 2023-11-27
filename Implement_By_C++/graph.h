@@ -5,78 +5,81 @@
 # include <glm/glm.hpp>
 # include <vector>
 
-const glm::vec3 O = glm::vec3(0., 0.35, -1.);
-const glm::vec3 light_point = glm::vec3(5., 5., -10.);
-const glm::vec3 light_color = glm::vec3(1., 1., 1.);
+using vec3 = glm::vec3;
+
+const vec3 O = vec3(0., 0.35, -1.);
+const vec3 light_point = vec3(5., 5., -10.);
+const vec3 light_color = vec3(1., 1., 1.);
 const float ambient = 0.05;
 
-glm::vec3 normalize(glm::vec3 x);
+vec3 normalize(vec3 x);
 
 class Object {
 public:
 
-    glm::vec3 position;
-    glm::vec3 color;
-    float reflection;
-    float diffuse;
-    float specular_c;
-    float specular_k;
+    const vec3 position;
+    const vec3 color;
+    const float reflection;
+    const float diffuse;
+    const float specular_c;
+    const float specular_k;
 
     Object(
-        glm::vec3 position, 
-        glm::vec3 color, 
+        vec3 position, 
+        vec3 color, 
         float reflection, 
         float diffuse, 
         float specular_c, 
         float specular_k
     );
 
-    virtual float intersect(const glm::vec3& origin, const glm::vec3& dir) = 0;
-    virtual glm::vec3 get_normal(const glm::vec3& point) = 0;
-    glm::vec3 get_color();
+    virtual float intersect(const vec3& origin, const vec3& dir) = 0;
+    virtual vec3 get_normal(const vec3& point) = 0;
+    vec3 get_color();
     virtual ~Object() {}
 };
 
 class Sphere : public Object {
 public:
 
-    float radius;
+    const float radius;
 
     Sphere(
-        glm::vec3 position, 
+        vec3 position, 
         float radius, 
-        glm::vec3 color, 
+        vec3 color, 
         float reflection = .85, 
         float diffuse = 1., 
         float specular_c = .6, 
         float specular_k = 50
     );
 
-    float intersect(const glm::vec3& origin, const glm::vec3& dir) override;
+    float intersect(const vec3& origin, const vec3& dir) override;
 
-    glm::vec3 get_normal(const glm::vec3& point) override;
+    vec3 get_normal(const vec3& point) override;
 };
 
 class Plane : public Object {
 public:
-    glm::vec3 normal;
+
+    const vec3 normal;
 
     Plane(
-        glm::vec3 position, 
-        glm::vec3 normal, 
-        glm::vec3 color = glm::vec3(1., 1., 1.), 
+        vec3 position, 
+        vec3 normal, 
+        vec3 color = vec3(1., 1., 1.), 
         float reflection = 0.15, 
         float diffuse = .75, 
         float specular_c = .3, 
         float specular_k = 50
     );
 
-    float intersect(const glm::vec3& origin, const glm::vec3& dir) override;
+    float intersect(const vec3& origin, const vec3& dir) override;
 
-    glm::vec3 get_normal(const glm::vec3& point) override;
+    vec3 get_normal(const vec3& point) override;
 };
 
-glm::vec3 intersect_color(glm::vec3 origin, glm::vec3 dir, float intensity, std::vector<Object*> &scene);
+vec3 intersect_color(vec3 origin, vec3 dir, float intensity, std::vector<Object*> &scene);
 
 void rendering(int w, int h, std::vector<Object*> &scene, std::string filename = "test.png");
 
