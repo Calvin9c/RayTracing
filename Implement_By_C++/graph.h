@@ -2,9 +2,13 @@
 #define GRAPH_H
 
 # include <iostream>
+# include <glm/glm.hpp>
+# include <vector>
 
-#include <glm/glm.hpp>
-#include <vector>
+const glm::vec3 O = glm::vec3(0., 0.35, -1.);
+const glm::vec3 light_point = glm::vec3(5., 5., -10.);
+const glm::vec3 light_color = glm::vec3(1., 1., 1.);
+const float ambient = 0.05;
 
 glm::vec3 normalize(glm::vec3 x);
 
@@ -72,8 +76,8 @@ public:
     glm::vec3 get_normal(const glm::vec3& point) override;
 };
 
-glm::vec3 intersect_color(glm::vec3 origin, glm::vec3 dir, float intensity, std::vector<Object*> &scene, glm::vec3 light_point, glm::vec3 light_color, float ambient);
+glm::vec3 intersect_color(glm::vec3 origin, glm::vec3 dir, float intensity, std::vector<Object*> &scene);
 
-void rendering(int w, int h, std::vector<Object*> &scene, glm::vec3 O, glm::vec3 light_point, glm::vec3 light_color, float ambient, std::string filename = "test.png");
+void rendering(int w, int h, std::vector<Object*> &scene, std::string filename = "test.png");
 
 #endif // GRAPH_H

@@ -1,14 +1,8 @@
-#include "graph.h"
+# include "graph.h"
 
-// #include <iostream>
-#include <cmath>
-#include <limits>
-
-// #include <vector>
-// #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <opencv2/opencv.hpp>
+# include <cmath>
+# include <limits>
+# include <opencv2/opencv.hpp>
 
 glm::vec3 normalize(glm::vec3 x) {
     return glm::normalize(x);
@@ -76,7 +70,7 @@ glm::vec3 Plane::get_normal(const glm::vec3& point) {
 }
 
 /* Other */
-glm::vec3 intersect_color(glm::vec3 origin, glm::vec3 dir, float intensity, std::vector<Object*> &scene, glm::vec3 light_point, glm::vec3 light_color, float ambient) {
+glm::vec3 intersect_color(const glm::vec3 origin, glm::vec3 dir, float intensity, std::vector<Object*> &scene) {
     float min_distance = std::numeric_limits<float>::infinity();
     size_t obj_index=-1;
     for (size_t i = 0; i < scene.size(); ++i) {
@@ -106,11 +100,11 @@ glm::vec3 intersect_color(glm::vec3 origin, glm::vec3 dir, float intensity, std:
         c += obj->specular_c * powf(std::max(glm::dot(N, normalize(PL + PO)), 0.f), obj->specular_k) * light_color;
     }
     glm::vec3 reflect_ray = dir - 2 * glm::dot(dir, N) * N;
-    c += obj->reflection * intersect_color(P + N * .0001f, reflect_ray, obj->reflection * intensity, scene, light_point, light_color, ambient);
+    c += obj->reflection * intersect_color(P + N * .0001f, reflect_ray, obj->reflection * intensity, scene);
     return glm::clamp(c, 0.f, 1.f);
 }
 
-void rendering(int w, int h, std::vector<Object*> &scene, glm::vec3 O, glm::vec3 light_point, glm::vec3 light_color, float ambient, std::string filename) {
+void rendering(int w, int h, std::vector<Object*> &scene, std::string filename) {
     cv::Mat img(h, w, CV_32FC3);
     float r = float(w) / h;
     glm::vec4 S = glm::vec4(-1., -1. / r + .25, 1., 1. / r + .25);
@@ -120,7 +114,7 @@ void rendering(int w, int h, std::vector<Object*> &scene, glm::vec3 O, glm::vec3
         for (int j = 0; j < h; ++j) {
             Q.x = S.x + i * (S.z - S.x) / (w - 1);
             Q.y = S.y + j * (S.w - S.y) / (h - 1);
-            glm::vec3 color = intersect_color(O, normalize(Q - O), 1, scene, light_point, light_color, ambient);
+            glm::vec3 color = intersect_color(O, normalize(Q - O), 1, scene);
             img.at<cv::Vec3f>(h - j - 1, i) = cv::Vec3f(color.x, color.y, color.z);
         }
     }
