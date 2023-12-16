@@ -1,8 +1,6 @@
 # include <iostream>
-# include <string>
 
 # include "graph.h"
-# include <glm/glm.hpp>
 
 # include <cstdlib> // For exit()
 # include <stdexcept> // For std::invalid_argument
@@ -11,7 +9,7 @@ int main(int argc, char *argv[]) {
 
     /* Process Usr Input */
 
-    int w = 800, h = 800;
+    int w = 1080, h = 960;
     bool wSet = false, hSet = false;
     try{
         for (int i = 1; i<argc; i++ ) {
@@ -35,7 +33,7 @@ int main(int argc, char *argv[]) {
         std::exit(EXIT_FAILURE);
     }
 
-    std::vector<Object*> scene = {
+    const std::vector<Object*> scene = {
         new Sphere(vec3(.75, .1, 1.), .6, vec3(.8, .3, 0.)),
         new Sphere(vec3(-.3, .01, .2), .3, vec3(.0, .0, .9)),
         new Sphere(vec3(-2.75, .1, 3.5), .6, vec3(.1, .572, .184)),
@@ -48,9 +46,7 @@ int main(int argc, char *argv[]) {
         "result.png" // img save name
     );
 
-    for (auto obj : scene) {
-        delete obj;
-    }
+    for (auto obj : scene) { delete obj; }
 
     return 0;
 }

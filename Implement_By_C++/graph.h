@@ -1,18 +1,18 @@
 #ifndef GRAPH_H
 #define GRAPH_H
 
-# include <iostream>
+# include <string>
+# include <limits>
 # include <glm/glm.hpp>
 # include <vector>
 
 using vec3 = glm::vec3;
 
-const vec3 O = vec3(0., 0.35, -1.);
+constexpr float infinity = std::numeric_limits<float>::infinity();
+const vec3 camera_pos  = vec3(0., 0.35, -1.);
 const vec3 light_point = vec3(5., 5., -10.);
 const vec3 light_color = vec3(1., 1., 1.);
-const float ambient = 0.05;
-
-vec3 normalize(vec3 x);
+const float ambient    = 0.05;
 
 class Object {
 public:
@@ -49,7 +49,7 @@ public:
         float radius, 
         vec3 color, 
         float reflection = .85, 
-        float diffuse = 1., 
+        float diffuse    = 1., 
         float specular_c = .6, 
         float specular_k = 50
     );
@@ -67,9 +67,9 @@ public:
     Plane(
         vec3 position, 
         vec3 normal, 
-        vec3 color = vec3(1., 1., 1.), 
+        vec3 color       = vec3(1., 1., 1.), 
         float reflection = 0.15, 
-        float diffuse = .75, 
+        float diffuse    = .75, 
         float specular_c = .3, 
         float specular_k = 50
     );
@@ -79,8 +79,17 @@ public:
     vec3 get_normal(const vec3& point) override;
 };
 
-vec3 intersect_color(vec3 origin, vec3 dir, float intensity, std::vector<Object*> &scene);
+vec3 intersect_color(
+    const vec3 origin, 
+    const vec3 dir, 
+    const float intensity, 
+    const std::vector<Object*> &scene
+);
 
-void rendering(int w, int h, std::vector<Object*> &scene, std::string filename = "test.png");
+void rendering(
+    const int w, const int h,
+    const std::vector<Object*> &scene,
+    const std::string filename
+);
 
 #endif // GRAPH_H
