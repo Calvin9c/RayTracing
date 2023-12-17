@@ -9,22 +9,21 @@ Object::Object(
     vec3 color, 
     float reflection, 
     float diffuse, 
-    float specular_c, 
+    float specular_coef, 
     float specular_k
-): position(position), color(color), reflection(reflection), diffuse(diffuse), specular_c(specular_c), specular_k(specular_k) {}
+): position(position), color(color), reflection(reflection), diffuse(diffuse), specular_coef(specular_coef), specular_k(specular_k) {}
 
 vec3 Object::get_color() { return color; }
 
 /* class Sphere */
 Sphere::Sphere(
-    vec3 position, 
-    float radius, 
+    vec3 position, float radius, 
     vec3 color, 
     float reflection, 
     float diffuse, 
-    float specular_c, 
+    float specular_coef, 
     float specular_k
-): Object(position, color, reflection, diffuse, specular_c, specular_k), radius(radius) {}
+): Object(position, color, reflection, diffuse, specular_coef, specular_k), radius(radius) {}
 
 float Sphere::intersect(const vec3& origin, const vec3& dir) {
 
@@ -44,14 +43,13 @@ vec3 Sphere::get_normal(const vec3& point) { return glm::normalize(point - posit
 
 /* class Plane */
 Plane::Plane(
-    vec3 position, 
-    vec3 normal, 
+    vec3 position, vec3 normal, 
     vec3 color, 
     float reflection, 
     float diffuse, 
-    float specular_c, 
+    float specular_coef, 
     float specular_k
-): Object(position, color, reflection, diffuse, specular_c, specular_k), normal(normal) {}
+): Object(position, color, reflection, diffuse, specular_coef, specular_k), normal(normal) {}
 
 float Plane::intersect(const vec3& origin, const vec3& dir) {
 
@@ -96,14 +94,16 @@ vec3 intersect_color(
     const vec3 color = obj->get_color();
     vec3 c = ambient * color;
 
+    /*shadow test*/
     std::vector<float> l;
     for (size_t i = 0; i < scene.size(); ++i) {
         if (i != obj_index)
             l.push_back(scene[i]->intersect(P + N * .0001f, PL));
     }
+
     if (!(l.size() > 0 && *min_element(l.begin(), l.end()) < glm::length(PL) )) {
         c += obj->diffuse * std::max(glm::dot(N, PL), 0.f) * color * light_color;
-        c += obj->specular_c * powf(std::max(glm::dot(N, glm::normalize(PL + PO)), 0.f), obj->specular_k) * light_color;
+        c += obj->specular_coef * powf(std::max(glm::dot(N, glm::normalize(PL + PO)), 0.f), obj->specular_k) * light_color;
     }
     vec3 reflect_ray = dir - 2 * glm::dot(dir, N) * N;
     c += obj->reflection * intersect_color(P + N * .0001f, reflect_ray, obj->reflection * intensity, scene);
@@ -122,7 +122,7 @@ void rendering(
     const float r = float(w) / h;
     
     // view frustum
-    glm::vec4 S = glm::vec4(-1., -1. / r + .25, 1., 1. / r + .25); 
+    const glm::vec4 S = glm::vec4(-1., -1. / r + .25, 1., 1. / r + .25); 
     
     vec3 camera_dir = vec3(0., 0., 0.); // point position that camera point to.
     

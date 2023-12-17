@@ -6,13 +6,14 @@
 # include <glm/glm.hpp>
 # include <vector>
 
+# define PI 3.1415926
+
 using vec3 = glm::vec3;
 
 constexpr float infinity = std::numeric_limits<float>::infinity();
-const vec3 camera_pos  = vec3(0., 0.35, -1.);
-const vec3 light_point = vec3(5., 5., -10.);
-const vec3 light_color = vec3(1., 1., 1.);
-const float ambient    = 0.05;
+const vec3 light_point   = vec3(5., 5., -10.);
+const vec3 light_color   = vec3(1., 1., 1.);
+constexpr float ambient  = 0.05;
 
 class Object {
 public:
@@ -21,7 +22,7 @@ public:
     const vec3 color;
     const float reflection;
     const float diffuse;
-    const float specular_c;
+    const float specular_coef;
     const float specular_k;
 
     Object(
@@ -29,7 +30,7 @@ public:
         vec3 color, 
         float reflection, 
         float diffuse, 
-        float specular_c, 
+        float specular_coef, 
         float specular_k
     );
 
@@ -48,10 +49,10 @@ public:
         vec3 position, 
         float radius, 
         vec3 color, 
-        float reflection = .85, 
-        float diffuse    = 1., 
-        float specular_c = .6, 
-        float specular_k = 50
+        float reflection    = .85, 
+        float diffuse       = 1., 
+        float specular_coef = .6, 
+        float specular_k    = 50
     );
 
     float intersect(const vec3& origin, const vec3& dir) override;
@@ -67,11 +68,11 @@ public:
     Plane(
         vec3 position, 
         vec3 normal, 
-        vec3 color       = vec3(1., 1., 1.), 
-        float reflection = 0.15, 
-        float diffuse    = .75, 
-        float specular_c = .3, 
-        float specular_k = 50
+        vec3 color          = vec3(1., 1., 1.), 
+        float reflection    = 0.15, 
+        float diffuse       = .75, 
+        float specular_coef = .3, 
+        float specular_k    = 50
     );
 
     float intersect(const vec3& origin, const vec3& dir) override;
