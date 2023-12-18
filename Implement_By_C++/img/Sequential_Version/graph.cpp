@@ -1,5 +1,4 @@
 # include "graph.h"
-# include "video_cfg.h"
 
 # include <cmath>
 # include <opencv2/opencv.hpp>
@@ -116,49 +115,29 @@ void rendering(
     const std::vector<Object*> &scene,
     const std::string filename
 ) {
-
-    cv::VideoWriter v_wrt;
-    v_wrt.open(
-        filename, 
-        cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), //fourcc
-        fps,
-        cv::Size(w, h)
-    );
-    if (!v_wrt.isOpened()) {
-        throw std::runtime_error("Error opening video writer");
-    }
-
     const float r     = float(w) / h;                                    // aspect ratio
     const glm::vec4 S = glm::vec4(-1., -1. / r + .25, 1., 1. / r + .25); // view frustum
-    
-    constexpr int total_frame = (int)video_length * fps;
-    for( int frame_idx = 0; frame_idx < total_frame ; ++frame_idx ){
 
-        cv::Mat frame(h, w, CV_32FC3);
+    const vec3 camera_dir   = glm::normalize(camera_target - camera_pos);
+    const vec3 camera_right = glm::normalize(glm::cross(camera_dir, vec3(0, 1, 0)));
+    const vec3 camera_up    = glm::normalize(glm::cross(camera_right, camera_dir)); 
 
-        const double theta      = (double)frame_idx * ( 2*PI / (video_length * fps) );
-        const vec3 camera_pos   = vec3(camera_target.x + radius * cos( theta ), 0.35, camera_target.z + radius * sin(theta));
-        const vec3 camera_dir   = glm::normalize(camera_target - camera_pos);
-        const vec3 camera_right = glm::normalize(glm::cross(camera_dir, vec3(0, 1, 0)));
-        const vec3 camera_up    = glm::normalize(glm::cross(camera_right, camera_dir));        
-        
-        for (int i = 0; i < h; ++i) {
-            for (int j = 0; j < w ; ++j) {
-                float u = S.z - j * (S.z - S.x) / (w - 1);
-                float v = S.w - i * (S.w - S.y) / (h - 1);
+    cv::Mat img(h, w, CV_32FC3); 
+    for (int i = 0; i < h; ++i) {
+        for (int j = 0; j < w ; ++j) {
 
-                vec3 direction = glm::normalize(camera_dir + u * camera_right + v * camera_up);
+            float u = S.z - j * (S.z - S.x) / (w - 1);
+            float v = S.w - i * (S.w - S.y) / (h - 1);
 
-                vec3 color = intersect_color(camera_pos, direction, 1, scene);
-                
-                frame.at<cv::Vec3f>(i, j) = cv::Vec3f(color.x, color.y, color.z);
-            }
+            vec3 direction = glm::normalize(camera_dir + u * camera_right + v * camera_up);
+
+            vec3 color = intersect_color(camera_pos, direction, 1, scene);
+
+            img.at<cv::Vec3f>(i, j) = cv::Vec3f(color.x, color.y, color.z);
         }
-
-        frame *= 255;
-        frame.convertTo(frame, CV_8UC3);
-        v_wrt.write(frame);
     }
-    v_wrt.release();
 
+    img *= 255;
+    img.convertTo(img, CV_8UC3);
+    cv::imwrite(filename, img);
 }

@@ -9,7 +9,12 @@
 using vec3 = glm::vec3;
 
 constexpr float infinity = std::numeric_limits<float>::infinity();
+
+/* camera */
+const vec3 camera_target = vec3(0., 0., 0.);
 const vec3 camera_pos    = vec3(0., 0.35, -1.);
+
+/* light */
 const vec3 light_point   = vec3(5., 5., -10.);
 const vec3 light_color   = vec3(1., 1., 1.);
 constexpr float ambient  = 0.05;

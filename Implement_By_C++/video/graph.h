@@ -11,6 +11,12 @@
 using vec3 = glm::vec3;
 
 constexpr float infinity = std::numeric_limits<float>::infinity();
+
+/* camera */
+constexpr double radius  = 1.0; // camera rotate radius
+const vec3 camera_target = vec3(0., 0., 0.);
+
+/* light */
 const vec3 light_point   = vec3(5., 5., -10.);
 const vec3 light_color   = vec3(1., 1., 1.);
 constexpr float ambient  = 0.05;

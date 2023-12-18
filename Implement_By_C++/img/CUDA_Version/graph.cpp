@@ -1,5 +1,4 @@
 # include "graph.h"
-
 # include <cmath>
 # include <opencv2/opencv.hpp>
 
@@ -110,34 +109,84 @@ vec3 intersect_color(
     return glm::clamp(c, 0.f, 1.f);
 }
 
+__global__ void rendering_kerenl(
+    const float lowerX, const float lowerY,
+    const float upperX, const float upperY,
+    const float stepX, const float stepY,
+    const int w, const int h, 
+    vec3* gpu_output,
+    vec3 camera_dir, vec3 camera_right, vec3 camera_up
+){
+
+    int thisX = blockIdx.x * blockDim.x + threadIdx.x;
+    int thisY = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (thisX >= w || thisY >= h) return;
+
+    float u = upperX - j * stepX;
+    float v = upperY - i * stepY;
+
+    vec3 direction = glm::normalize(camera_dir + u * camera_right + v * camera_up);
+
+    int index = thisY * w + thisX;
+    gpu_output[index] = intersect_color(camera_pos, direction, 1, scene);
+}
+
 void rendering(
     const int w, const int h, 
     const std::vector<Object*> &scene,
     const std::string filename
 ) {
+    const float r     = float(w) / h;                                    // aspect ratio
+    const glm::vec4 S = glm::vec4(-1., -1. / r + .25, 1., 1. / r + .25); // view frustum
 
-    cv::Mat img(h, w, CV_32FC3);
-    
-    // aspect ratio
-    const float r = float(w) / h;
-    
-    // view frustum
-    const glm::vec4 S = glm::vec4(-1., -1. / r + .25, 1., 1. / r + .25); 
-    
-    vec3 camera_dir = vec3(0., 0., 0.); // point position that camera point to.
-    
-    for (int i = 0; i < h; ++i) {
-        for (int j = 0; j < w ; ++j) {
-            camera_dir.x = S.x + j * (S.z - S.x) / (w - 1);
-            camera_dir.y = S.w - i * (S.w - S.y) / (h - 1);
-            vec3 color = intersect_color(camera_pos, glm::normalize(camera_dir - camera_pos), 1, scene);
-            img.at<cv::Vec3f>(i, j) = cv::Vec3f(color.x, color.y, color.z);
-        }
-    }
+    const float stepX = (S.z - S.x) / (w - 1);
+    const float stepY = (S.w - S.y) / (h - 1);
 
-    img *= 255;
-    
-    img.convertTo(img, CV_8UC3);
-    
-    cv::imwrite(filename, img);
+    const vec3 camera_dir   = glm::normalize(camera_target - camera_pos);
+    const vec3 camera_right = glm::normalize(glm::cross(camera_dir, vec3(0, 1, 0)));
+    const vec3 camera_up    = glm::normalize(glm::cross(camera_right, camera_dir)); 
+
+    cv::Mat img(h, w, CV_32FC3); 
+
+    // Allocate GPU memory
+    size_t outputSize = w * h * sizeof(vec3);
+    vec3 *gpu_output; // dev output
+    cudaMalloc(&gpu_output, outputSize);
+
+    dim3 blockSize(16, 16);
+    dim3 gridSize((w + blockSize.x - 1) / blockSize.x, (h + blockSize.y - 1) / blockSize.y);
+
+    rendering_kerenl<<<gridSize, blockSize>>>(
+        S.x, S.y, 
+        S.z, S.w, 
+        stepX, stepY, 
+        w, h, 
+        gpu_output, 
+        camera_dir, camera_right, camera_up
+    );
+
+    glm::vec3 *img = new vec3[w * h];
+    cudaMemcpy(img, gpu_output, w * h * sizeof(vec3), cudaMemcpyDeviceToHost);
+
+    delete[] output;
+    cudaFree(gpu_output);
+
+    // for (int i = 0; i < h; ++i) {
+    //     for (int j = 0; j < w ; ++j) {
+
+    //         float u = S.z - j * stepX;
+    //         float v = S.w - i * stepY;
+
+    //         vec3 direction = glm::normalize(camera_dir + u * camera_right + v * camera_up);
+
+    //         vec3 color = intersect_color(camera_pos, direction, 1, scene);
+
+    //         img.at<cv::Vec3f>(i, j) = cv::Vec3f(color.x, color.y, color.z);
+    //     }
+    // }
+
+    // img *= 255;
+    // img.convertTo(img, CV_8UC3);
+    // cv::imwrite(filename, img);
 }
