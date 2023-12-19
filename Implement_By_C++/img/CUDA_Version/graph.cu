@@ -1,10 +1,8 @@
 # include "graph.h"
-# include <opencv2/opencv.hpp>
 
 __device__ float intersect(const Object& obj, const vec3& origin, const vec3& dir){
     switch(obj.type){
-        case SPHERE:
-
+        case SPHERE:{
             const vec3 OC = obj.position - origin;
 
             if (glm::length(OC) < obj.radius || glm::dot(OC, dir) < 0) return infinity;
@@ -13,9 +11,9 @@ __device__ float intersect(const Object& obj, const vec3& origin, const vec3& di
             float m_square = glm::length(OC) * glm::length(OC) - l * l;
             float q_square = obj.radius * obj.radius - m_square;
 
-            return (q_square >= 0) ? (l - sqrt(q_square)) : infinity;
-
-        case PLANE:
+            return (q_square >= 0) ? (l - sqrtf(q_square)) : infinity;
+        }
+        case PLANE: {
             float dn = glm::dot(dir, obj.normal);
     
             if (abs(dn) < 1e-6) { return infinity; }
@@ -23,6 +21,7 @@ __device__ float intersect(const Object& obj, const vec3& origin, const vec3& di
             float d = glm::dot(obj.position - origin, obj.normal) / dn;
             
             return d > 0 ? d : infinity;
+        }
     }
 }
 
@@ -36,63 +35,64 @@ __device__ vec3 get_normal(const Object& obj, const vec3& point){
 }
 
 __device__ vec3 intersect_color(
-    const vec3 origin, const vec3 dir, 
-    const float intensity, 
-    const Object* dev_scene, const int numObjects
+    vec3 origin, vec3 dir, 
+    const float initial_intensity, 
+    const Object* dev_scene
 ){
+    vec3 final_color = vec3(0., 0., 0.);
+    float intensity = initial_intensity;
 
-    float min_distance = infinity;
+    for (int depth = 0; depth < MAX_DEPTH; ++depth) {
+        if (intensity < 0.01) break;
 
-    size_t obj_index=-1;
-    for (size_t i = 0; i < numObjects; ++i) {
-        float current_distance = intersect(dev_scene[obj_index], origin, dir);
-        if (current_distance < min_distance) {
-            min_distance = current_distance;
-            obj_index = i;
-        }
-    }
-
-    if (min_distance == infinity || intensity < 0.01) return vec3(0., 0., 0.);
-    
-    Object* obj   = dev_scene[obj_index];
-    const vec3 P  = origin + dir * min_distance;
-    const vec3 PL = glm::normalize(light_point - P);
-    const vec3 PO = glm::normalize(origin - P);
-    const vec3 N  = get_normal(obj, P);
-
-    vec3 c = ambient * obj.color;
-
-    /*shadow test*/
-    float l[maxObjects];
-    int lSize = 0;
-    for (size_t i = 0; i < numObjects; ++i) {
-        if (i != obj_index){
-            float intersection = intersect(dev_scene[i], P + N * .0001f, PL);
-            if (intersection < glm::length(PL)) {
-                l[lSize++] = intersection;
+        float min_distance = infinity;
+        size_t obj_index = invalid_idx;
+        for (size_t i = 0; i < numObjects; ++i) {
+            float current_distance = intersect(dev_scene[i], origin, dir);
+            if (current_distance < min_distance) {
+                min_distance = current_distance;
+                obj_index = i;
             }
         }
-    }
 
-    bool isShadowed = false;
-    for (size_t i = 0; i < lSize; ++i) {
-        if (l[i] < glm::length(PL)) {
-            isShadowed = true;
-            break;
+        if (min_distance == infinity) break;
+        
+        const Object& obj = dev_scene[obj_index];
+        vec3 c            = ambient * obj.color;
+        const vec3 P      = origin + dir * min_distance;
+        const vec3 PL     = glm::normalize(light_point - P);
+        const vec3 PO     = glm::normalize(origin - P);
+        const vec3 N      = get_normal(obj, P);
+
+        /*shadow test*/
+        bool in_shadow = false;
+        for (size_t i = 0; i < numObjects; ++i) {
+            if (i != obj_index){
+                float intersection = intersect(dev_scene[i], P + N * .0001f, PL);
+                if (intersection < glm::length(PL)){
+                    in_shadow = true;
+                    break;
+                }
+            }
         }
+
+        if (!in_shadow) {
+            c += obj.diffuse * fmaxf(glm::dot(N, PL), 0.f) * obj.color * light_color;
+            c += obj.specular_coef * powf(fmaxf(glm::dot(N, glm::normalize(PL + PO)), 0.f), obj.specular_k) * light_color;
+        }
+
+        final_color += intensity * c;
+        if (obj.reflection <= 0) break;
+
+        dir = dir - 2 * glm::dot(dir, N) * N;
+        origin = P + N * .0001f;
+        intensity *= obj.reflection;
     }
 
-    if (!isShadowed) {
-        c += obj.diffuse * std::max(glm::dot(N, PL), 0.f) * obj.color * light_color;
-        c += obj.specular_coef * powf(std::max(glm::dot(N, glm::normalize(PL + PO)), 0.f), obj.specular_k) * light_color;
-    }
-
-    vec3 reflect_ray = dir - 2 * glm::dot(dir, N) * N;
-    c += obj.reflection * intersect_color(P + N * .0001f, reflect_ray, obj.reflection * intensity, dev_scene, numObjects);
-    return glm::clamp(c, 0.f, 1.f);
+    return glm::clamp(final_color, 0.f, 1.f);
 }
 
-__global__ void rendering_kerenl(
+__global__ void rendering_kernel(
     const float lowerX, const float lowerY,
     const float upperX, const float upperY,
     const float stepX, const float stepY,
@@ -117,7 +117,6 @@ __global__ void rendering_kerenl(
 
 void rendering(
     const int w, const int h,
-    const Object* dev_scene, const int numObjects,
     const std::string filename
 ){
     
@@ -131,6 +130,12 @@ void rendering(
     const float stepX = (S.z - S.x) / (w - 1);
     const float stepY = (S.w - S.y) / (h - 1);
 
+    /* setup dev_scene */
+    Object *dev_scene;
+    cudaMalloc(&dev_scene, sizeof(host_scene));
+    cudaMemcpy(dev_scene, host_scene, sizeof(host_scene), cudaMemcpyHostToDevice);
+
+    /* setup dev_output */
     size_t outputSize = w * h * sizeof(vec3);
     vec3 *gpu_output; // dev output
     cudaMalloc(&gpu_output, outputSize);
@@ -138,13 +143,13 @@ void rendering(
     dim3 blockSize(16, 16);
     dim3 gridSize((w + blockSize.x - 1) / blockSize.x, (h + blockSize.y - 1) / blockSize.y);
 
-    rendering_kerenl<<<gridSize, blockSize>>>(
+    rendering_kernel<<<gridSize, blockSize>>>(
         S.x, S.y, 
         S.z, S.w, 
         stepX, stepY, 
         w, h, 
         dev_scene, gpu_output,
-        const vec3 camera_dir, const vec3 camera_right, const vec3 camera_up
+        camera_dir, camera_right, camera_up
     );
 
     cv::Mat img(h, w, CV_32FC3);
@@ -154,12 +159,6 @@ void rendering(
     img.convertTo(img, CV_8UC3);
     cv::imwrite(filename, img);
 
+    cudaFree(dev_scene);
     cudaFree(gpu_output);
 }
-
-// /* Sphere */
-// __device__ float intersect_sphere(const Object& obj, const vec3& origin, const vec3& dir){}
-// __device__ vec3 get_normal_sphere(const Object& obj, const vec3& point){}
-// /* Plane */
-// __device__ float intersect_plane(const Object& obj, const vec3& origin, const vec3& dir){}
-// __device__ vec3 get_normal_plane(const Object& obj, const vec3& point){}

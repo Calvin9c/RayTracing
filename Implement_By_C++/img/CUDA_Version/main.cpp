@@ -1,5 +1,4 @@
 # include <iostream>
-
 # include "graph.h"
 
 # include <cstdlib> // For exit()
@@ -33,21 +32,8 @@ int main(int argc, char *argv[]) {
         std::exit(EXIT_FAILURE);
     }
 
-    const Object host_scene[] = {
-        Object(SPHERE, vec3(.75, .1, 1.), .6, vec3(.8, .3, 0.)),
-        Object(SPHERE, vec3(-.3, .01, .2), .3, vec3(.0, .0, .9)),
-        Object(SPHERE, vec3(-2.75, .1, 3.5), .6, vec3(.1, .572, .184)),
-        Object(PLANE, vec3(0., -.5, 0.), vec3(0., 1., 0.))
-    };
-    const numObjects = sizeof(host_scene)/sizeof(Object);
-
-    Object *dev_scene;
-    cudaMalloc(&dev_scene, sizeof(host_scene));
-    cudaMemcpy(dev_scene, host_scene, sizeof(host_scene), cudaMemcpyHostToDevice);
-
     rendering(
         w, h,
-        dev_scene, numObjects,
         "result.png" // img save name
     );
 

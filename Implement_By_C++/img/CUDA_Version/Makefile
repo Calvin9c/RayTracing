@@ -3,15 +3,15 @@ CC = g++
 NVCC = nvcc
 
 # Include path for GLM and stb
-INCLUDE_PATH = -I/usr/include/glm -I/usr/include/opencv4
+INCLUDE_PATH = -I/usr/include/glm -I/usr/include/opencv4 -I/usr/local/cuda-12/include
 
 # Libraries
 LIBS = -lGL -lopencv_core -lopencv_imgproc -lopencv_highgui -lopencv_imgcodecs
-CUDA_LIBS = -L/usr/local/cuda/lib64 -lcudart
+CUDA_LIBS = -L/usr/local/cuda-12/lib64 -lcudart
 
 # Compiler flags
 CFLAGS = -std=c++11 $(INCLUDE_PATH) -O2 -Wall
-NVCCFLAGS = -Xcompiler -fPIC
+NVCCFLAGS = -Xcompiler -fPIC $(INCLUDE_PATH)
 
 # Target, Output binary
 BIN = raytracing
