@@ -139,11 +139,15 @@ void rendering(
     cudaMemcpy(dev_scene, host_scene, sizeof(host_scene), cudaMemcpyHostToDevice);
 
     /* setup dev_output */
-    size_t outputSize = w * h * sizeof(vec3);
+    size_t pitch;
     vec3 *gpu_output; // dev output
-    cudaMalloc(&gpu_output, outputSize);
+    cudaMallocPitch(&gpu_output, &pitch, w * sizeof(vec3), h);
 
-    dim3 blockSize(16, 16);
+    // Use cudaHostAlloc for host output
+    vec3 *host_output;
+    cudaHostAlloc((void**)&host_output, h * pitch, cudaHostAllocDefault);
+
+    dim3 blockSize(32, 32);
     dim3 gridSize((w + blockSize.x - 1) / blockSize.x, (h + blockSize.y - 1) / blockSize.y);
 
     auto start_time = std::chrono::high_resolution_clock::now();
@@ -157,9 +161,10 @@ void rendering(
         camera_dir, camera_right, camera_up
     );
 
-    cv::Mat img(h, w, CV_32FC3);
-    cudaMemcpy(img.data, gpu_output, outputSize, cudaMemcpyDeviceToHost);
+    // Copy the results back to host output
+    cudaMemcpy2D(host_output, pitch, gpu_output, pitch, w * sizeof(vec3), h, cudaMemcpyDeviceToHost);    
 
+    cv::Mat img(h, w, CV_32FC3, host_output);
     img *= 255;
     img.convertTo(img, CV_8UC3);
     cv::imwrite(filename, img);

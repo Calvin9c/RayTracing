@@ -3,6 +3,8 @@
 # include <iostream>
 # include <chrono> 
 
+# define PIXELS_PER_THREAD 32
+
 __device__ float intersect(const Object& obj, const vec3& origin, const vec3& dir){
     switch(obj.type){
         case SPHERE:{
@@ -101,21 +103,29 @@ __global__ void rendering_kernel(
     const float stepX, const float stepY,
     const int w, const int h, 
     const Object* dev_scene, vec3* gpu_output,
-    const vec3 camera_dir, const vec3 camera_right, const vec3 camera_up
+    const vec3 camera_dir, const vec3 camera_right, const vec3 camera_up,
+    int pixelsPerThread
 ){
 
-    int thisX = blockIdx.x * blockDim.x + threadIdx.x;
-    int thisY = blockIdx.y * blockDim.y + threadIdx.y;
+    int startX = blockIdx.x * blockDim.x * pixelsPerThread + threadIdx.x;
+    int startY = blockIdx.y * blockDim.y * pixelsPerThread + threadIdx.y;
 
-    if (thisX >= w || thisY >= h) return;
+    for (int i = 0; i < pixelsPerThread; i++) {
+        for (int j = 0; j < pixelsPerThread; j++) {
+            int thisX = startX + i;
+            int thisY = startY + j;
 
-    float u = upperX - thisX * stepX;
-    float v = upperY - thisY * stepY;
+            if (thisX >= w || thisY >= h) continue;
 
-    vec3 direction = glm::normalize(camera_dir + u * camera_right + v * camera_up);
+            float u = upperX - thisX * stepX;
+            float v = upperY - thisY * stepY;
 
-    int index = thisY * w + thisX;
-    gpu_output[index] = intersect_color(camera_pos, direction, 1, dev_scene);
+            vec3 direction = glm::normalize(camera_dir + u * camera_right + v * camera_up);
+
+            int index = thisY * w + thisX;
+            gpu_output[index] = intersect_color(camera_pos, direction, 1, dev_scene);
+        }
+    }
 }
 
 void rendering(
@@ -139,12 +149,17 @@ void rendering(
     cudaMemcpy(dev_scene, host_scene, sizeof(host_scene), cudaMemcpyHostToDevice);
 
     /* setup dev_output */
-    size_t outputSize = w * h * sizeof(vec3);
+    size_t pitch;
     vec3 *gpu_output; // dev output
-    cudaMalloc(&gpu_output, outputSize);
+    cudaMallocPitch(&gpu_output, &pitch, w * sizeof(vec3), h);
 
-    dim3 blockSize(16, 16);
-    dim3 gridSize((w + blockSize.x - 1) / blockSize.x, (h + blockSize.y - 1) / blockSize.y);
+    // Use cudaHostAlloc for host output
+    vec3 *host_output;
+    cudaHostAlloc((void**)&host_output, h * pitch, cudaHostAllocDefault);
+
+    dim3 blockSize(16, 16); 
+    dim3 gridSize((w + blockSize.x * PIXELS_PER_THREAD - 1) / (blockSize.x * PIXELS_PER_THREAD),
+                  (h + blockSize.y * PIXELS_PER_THREAD - 1) / (blockSize.y * PIXELS_PER_THREAD));
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
@@ -154,7 +169,8 @@ void rendering(
         stepX, stepY, 
         w, h, 
         dev_scene, gpu_output,
-        camera_dir, camera_right, camera_up
+        camera_dir, camera_right, camera_up,
+        PIXELS_PER_THREAD
     );
 
     cv::Mat img(h, w, CV_32FC3);

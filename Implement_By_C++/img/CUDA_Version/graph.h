@@ -20,7 +20,7 @@ using vec3 = glm::vec3;
 
 constexpr float infinity     = std::numeric_limits<float>::infinity();
 constexpr size_t invalid_idx = std::numeric_limits<size_t>::max();
-constexpr int MAX_DEPTH = 8;
+constexpr int MAX_DEPTH      = 12;
 
 /* camera */
 CUDA_DEV const vec3 camera_target = vec3(0., 0., 0.);
@@ -29,13 +29,12 @@ CUDA_DEV const vec3 camera_pos    = vec3(0., 0.35, -1.);
 /* light */
 CUDA_DEV const vec3 light_point  = vec3(5., 5., -10.);
 CUDA_DEV const vec3 light_color  = vec3(1., 1., 1.);
-CUDA_DEV constexpr float ambient = 0.05;
+constexpr float ambient          = 0.05;
 
 enum ObjectType {
     SPHERE, PLANE
 };
 
-// CUDA_HOST CUDA_DEV struct Object {
 struct Object {
     ObjectType type;
     vec3 position;
@@ -76,12 +75,12 @@ struct Object {
 };
 
 /* scene */
-// CUDA_HOST const Object host_scene[] = {
 const Object host_scene[] = {
     Object(SPHERE, vec3(.75, .1, 1.), .6, vec3(.8, .3, 0.), .85, 1., .6, 50),
     Object(SPHERE, vec3(-.3, .01, .2), .3, vec3(.0, .0, .9), .85, 1., .6, 50),
     Object(SPHERE, vec3(-2.75, .1, 3.5), .6, vec3(.1, .572, .184), .85, 1., .6, 50),
-    Object(PLANE, vec3(0., -.5, 0.), vec3(0., 1., 0.), vec3(1., 1., 1.), .15, .75, .3, 50)
+    Object(SPHERE, vec3(.0, 1., 3.5), .6, vec3(.580, .082, .666), .85, 1., .6, 50),
+    Object(PLANE,  vec3(0., -.5, 0.), vec3(0., 1., 0.), vec3(1., 1., 1.), .15, .75, .3, 50)
 };
 const int numObjects = sizeof(host_scene) / sizeof(Object);
 

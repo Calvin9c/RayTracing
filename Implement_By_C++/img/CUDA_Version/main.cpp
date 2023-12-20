@@ -8,7 +8,7 @@ int main(int argc, char *argv[]) {
 
     /* Process Usr Input */
 
-    int w = 7680, h = 4320;
+    int w = 3840, h = 2160;
     bool wSet = false, hSet = false;
     try{
         for (int i = 1; i<argc; i++ ) {
