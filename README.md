@@ -43,4 +43,4 @@ Try out different versions of our renderer by following these instructions:
 Once the execution is complete, the rendered image will be saved as 'result.png' in the respective directory.
 
 ## References
-1. [Simple Ray Tracing Renderer](https://ppt.cc/fvCYvx)
+1. [Simple Ray Tracing Renderer](https://zhuanlan.zhihu.com/p/361144314)
