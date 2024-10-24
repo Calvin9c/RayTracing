@@ -6,13 +6,13 @@ import numpy as np
 class Sphere(BaseObject):
     def __init__(
             self,
-            position: list, # center of the sphere
-            color: list,
-            reflection: float = 0.85,
-            diffuse: float = 1.0,
-            specular_coef: float = 0.6,
-            specular_k: float = 50,
-            radius: float = 0.5,
+            position: list[float], # center of the sphere
+            color: list[float],
+            reflection: float,
+            diffuse: float,
+            specular_coef: float,
+            specular_k: float,
+            radius: float,
         ):
         super().__init__(position, color, reflection, diffuse, specular_coef, specular_k)
         self.radius = radius
@@ -37,13 +37,13 @@ class Sphere(BaseObject):
 class Plane(BaseObject):
     def __init__(
             self,
-            position: list,
-            color: list = [1.0, 1.0, 1.0],
-            reflection: float = 0.15,
-            diffuse: float = 0.75,
-            specular_coef: float = 0.3,
-            specular_k: float = 50,
-            normal: list = [0.0, 1.0, 0.0],
+            position: list[float],
+            color: list[float],
+            reflection: float,
+            diffuse: float,
+            specular_coef: float,
+            specular_k: float,
+            normal: list[float],
         ):
         super().__init__(position, color, reflection, diffuse, specular_coef, specular_k)
         self.normal = normalize(np.array(normal))
