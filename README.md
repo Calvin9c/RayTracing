@@ -3,7 +3,7 @@
 ![result](example/example.png)
 
 ## News
-We upload a new refactored version of this project, available under the `refactor_version/` directory. The refactor includes improvements and restructuring of the C++, Python, and Pybind implementations. To get started with the refactored version, please refer to the [`refactor_version/README.md`](refactor_version/Readme.md) for detailed installation and usage instructions.
+We upload a new refactored version of this project, available under the `refactor_version/` directory. The refactor includes improvements and restructuring of the C++, Python, and Pybind implementations. To get started with the refactored version, please refer to the [`refactor_version/README.md`](refactor_version/README.md) for detailed installation and usage instructions.
 
 ## Introduction
 Ray tracing is a widely-used rendering technique in computer graphics that simulates the behavior of light as it traverses through space by tracking the interaction of light rays with objects in a scene. This GitHub repository implements a straightforward ray tracing renderer. In addition to the serial version of the rendering process, this project also utilizes parallel development libraries such as Pthread, OpenMP, and CUDA for rendering acceleration.
