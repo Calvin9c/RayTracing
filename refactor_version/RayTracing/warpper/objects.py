@@ -1,7 +1,4 @@
 from .utils import *
-import importlib.util
-from pathlib import Path
-import subprocess
 
 def sphere(
     position: list[float], # center of the sphere

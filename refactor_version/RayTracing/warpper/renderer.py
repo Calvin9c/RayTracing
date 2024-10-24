@@ -1,9 +1,5 @@
 from .utils import *
 
-import importlib.util
-from pathlib import Path
-import subprocess
-
 def renderer(
     img_h: int,
     img_w: int,
