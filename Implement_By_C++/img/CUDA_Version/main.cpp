@@ -37,5 +37,10 @@ int main(int argc, char *argv[]) {
         "result.png" // img save name
     );
 
+    rendering_balanced(
+        w, h,
+        "result.png" // img save name
+    );
+
     return 0;
 }

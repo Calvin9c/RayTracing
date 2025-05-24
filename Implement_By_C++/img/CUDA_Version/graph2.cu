@@ -182,7 +182,7 @@ void rendering(
 
     auto end_time = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    std::cout << "Rendering completed in " << duration.count() << " milliseconds." << std::endl;    
+    std::cout << "Rendering completed in " << duration.count() << " milliseconds." << std::endl;
 
     cudaFree(dev_scene);
     cudaFree(gpu_output);

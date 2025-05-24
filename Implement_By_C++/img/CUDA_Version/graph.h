@@ -110,4 +110,9 @@ void rendering(
     const std::string filename
 );
 
+void rendering_balanced (
+    const int w, const int h,
+    const std::string filename
+);
+
 #endif // GRAPH_H
