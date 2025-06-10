@@ -3,6 +3,26 @@
 # include <iostream>
 # include <chrono> 
 
+class CudaTimer {
+public:
+    CudaTimer() {
+        cudaEventCreate(&start_);
+        cudaEventCreate(&stop_);
+        cudaEventRecord(start_);
+    }
+    ~CudaTimer() {
+        cudaEventRecord(stop_);
+        cudaEventSynchronize(stop_);
+        float ms = 0;
+        cudaEventElapsedTime(&ms, start_, stop_);
+        std::cout << "[Kernel] " << " took " << ms << " ms" << std::endl;
+        cudaEventDestroy(start_);
+        cudaEventDestroy(stop_);
+    }
+private:
+    cudaEvent_t start_, stop_;
+};
+
 __device__ int rendering_balanced_dev_cnt=0;
 
 __device__ float intersect(const Object& obj, const vec3& origin, const vec3& dir){
@@ -124,7 +144,7 @@ void rendering(
     const int w, const int h,
     const std::string filename
 ){
-    
+   
     const float r     = float(w) / h;                                    // aspect ratio
     const glm::vec4 S = glm::vec4(-1., -1. / r + .25, 1., 1. / r + .25); // view frustum
 
@@ -148,16 +168,17 @@ void rendering(
     dim3 blockSize(16, 16);
     dim3 gridSize((w + blockSize.x - 1) / blockSize.x, (h + blockSize.y - 1) / blockSize.y);
 
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-    rendering_kernel<<<gridSize, blockSize>>>(
-        S.x, S.y, 
-        S.z, S.w, 
-        stepX, stepY, 
-        w, h, 
-        dev_scene, gpu_output,
-        camera_dir, camera_right, camera_up
-    );
+    {
+        CudaTimer timer;
+        rendering_kernel<<<gridSize, blockSize>>>(
+            S.x, S.y, 
+            S.z, S.w, 
+            stepX, stepY, 
+            w, h, 
+            dev_scene, gpu_output,
+            camera_dir, camera_right, camera_up
+        );
+    }
 
     cv::Mat img(h, w, CV_32FC3);
     cudaMemcpy(img.data, gpu_output, outputSize, cudaMemcpyDeviceToHost);
@@ -165,10 +186,6 @@ void rendering(
     img *= 255;
     img.convertTo(img, CV_8UC3);
     cv::imwrite(filename, img);
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    std::cout << "Rendering completed in " << duration.count() << " milliseconds." << std::endl;    
 
     cudaFree(dev_scene);
     cudaFree(gpu_output);
@@ -225,27 +242,24 @@ void rendering_balanced (
     constexpr int _zero = 0;
     cudaMemcpyToSymbol(rendering_balanced_dev_cnt, &_zero, sizeof(int));
 
-    auto start_time = std::chrono::high_resolution_clock::now();
-
-    rendering_kernel_balanced<<<gridSize, blockSize>>>(
-        S.x, S.y, 
-        S.z, S.w, 
-        stepX, stepY, 
-        w, h, 
-        dev_scene, gpu_output,
-        camera_dir, camera_right, camera_up
-    );
+    {
+        CudaTimer timer;
+        rendering_kernel_balanced<<<gridSize, blockSize>>>(
+            S.x, S.y, 
+            S.z, S.w, 
+            stepX, stepY, 
+            w, h, 
+            dev_scene, gpu_output,
+            camera_dir, camera_right, camera_up
+        );
+    }
 
     cv::Mat img(h, w, CV_32FC3);
     cudaMemcpy(img.data, gpu_output, outputSize, cudaMemcpyDeviceToHost);
 
     img *= 255;
     img.convertTo(img, CV_8UC3);
-    cv::imwrite(filename, img);
-
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
-    std::cout << "Rendering completed in " << duration.count() << " milliseconds." << std::endl;    
+    cv::imwrite(filename, img);  
 
     cudaFree(dev_scene);
     cudaFree(gpu_output);
