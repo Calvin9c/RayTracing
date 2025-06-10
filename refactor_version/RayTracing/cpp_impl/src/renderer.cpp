@@ -5,6 +5,9 @@
 # include <algorithm>
 # include <cmath>
 # include <vector>
+# include <queue>
+# include <thread>
+# include <mutex>
 # include <string>
 
 # include <filesystem>
@@ -161,4 +164,77 @@ void Renderer::rendering() const {
     }
     img.convertTo(img, CV_8UC3, 255.0);
     cv::imwrite(result_save_path, img);    
+}
+
+namespace {
+    struct RenderTask {
+        int i, j;
+        glm::vec3 camera_pos, direction;
+    };
+    struct ThreadData {
+        cv::Mat *img;
+        std::queue<RenderTask> *task_que;
+        std::mutex* mutex;
+    };
+}
+
+void Renderer::rendering_pthread_task(void* thread_data) {
+    ThreadData *data = static_cast<ThreadData*>(thread_data);
+    while (true) {
+        bool get_task = false;
+        RenderTask task;
+        {
+            std::unique_lock<std::mutex> lock(*data->mutex);
+            if (!data->task_que->empty()) {
+                get_task = true;
+                task = data->task_que->front();
+                data->task_que->pop();
+            }
+        }
+        if (!get_task) break;
+
+        glm::vec3 color = _ray_tracing(task.camera_pos, task.direction, 1.0f);
+        data->img->at<cv::Vec3f>(task.i, task.j)[0] = color.r;
+        data->img->at<cv::Vec3f>(task.i, task.j)[1] = color.g;
+        data->img->at<cv::Vec3f>(task.i, task.j)[2] = color.b;
+    }
+}
+
+void Renderer::rendering_pthread() {
+
+    float aspect_ratio = static_cast<float>(img_w) / static_cast<float>(img_h);
+
+    float left = -1.0f;
+    float right = 1.0f;
+    float bottom = -1.0f / aspect_ratio + 0.25f;
+    float top = 1.0f / aspect_ratio + 0.25f;
+
+    cv::Mat img = cv::Mat::zeros(img_h, img_w, CV_32FC3);
+    std::queue<RenderTask> task_que;
+
+    for (int i=0; i<img_h; ++i) {
+        for (int j=0; j<img_w; ++j) {
+            float u = right - j * (right - left) / (img_w - 1);
+            float v = top - i * (top - bottom) / (img_h - 1);
+            glm::vec3 direction = 
+                glm::normalize(camera_dir + u * camera_right + v * camera_up);
+            task_que.push({i, j, camera_pos, direction});
+        }
+    }
+    std::mutex mutex;
+    constexpr int NUM_THREADS = 4;
+    std::vector<std::thread> thread_pool;
+
+    ThreadData thread_data{&img, &task_que, &mutex};
+    for (int i=0; i<NUM_THREADS; ++i) {
+        thread_pool.push_back(
+            std::thread([this, &thread_data](){rendering_pthread_task(&thread_data);})
+        );
+    }
+    for (auto& t : thread_pool) {
+        t.join();
+    }
+    
+    img.convertTo(img, CV_8UC3, 255.0);
+    cv::imwrite("pthread.png", img);    
 }

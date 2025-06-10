@@ -73,6 +73,8 @@ public:
     ) const ;
 
     void rendering() const ;
+    void rendering_pthread() ;
+    void rendering_pthread_task(void*);
 
 };
 

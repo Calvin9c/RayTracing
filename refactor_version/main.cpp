@@ -87,6 +87,7 @@ int main(int argc, char *argv[]){
     );
 
     renderer.rendering();
+    renderer.rendering_pthread();
 
     return 0;
 }
